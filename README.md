@@ -3,13 +3,26 @@
 The environment for our CS.30707 project: one four-way intersection in SUMO. Every episode has random traffic plus one sudden disruption.
 
 ## Setup
+> **Linux users:** on Linux, `pip` installs the CUDA build of PyTorch by default (PyTorch is a dependency of `stable-baselines3`), which pulls in several GB of NVIDIA libraries. This project trains fine on CPU, so install the CPU-only build of torch **before** `requirements.txt`, as shown below. Windows and macOS wheels from PyPI are already CPU-only, so skip that line there. If you already installed the CUDA build, see [Switching to CPU-only PyTorch](#switching-to-cpu-only-pytorch).
+
 ```bash
+python3 -m venv .venv && source .venv/bin/activate   # isolated env (Windows: .venv\Scripts\activate)
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # Linux only: CPU-only torch, avoids ~5 GB of CUDA libs
 pip install -r requirements.txt
 export LIBSUMO_AS_TRACI=1        # ~10x faster simulation (Windows: set LIBSUMO_AS_TRACI=1)
 python scripts/check_env.py      # sanity checks + results/check_env.png (~3 min)
 python scripts/smoke_train.py    # confirms PPO and RecurrentPPO train
 ```
 `SUMO_HOME` is set automatically from the pip-installed `eclipse-sumo`.
+
+### Switching to CPU-only PyTorch
+If `pip list | grep -iE 'nvidia|cuda'` shows packages, you have the CUDA build. Replace it (inside the activated venv):
+```bash
+pip uninstall -y torch triton $(pip list --format=freeze | grep -iE '^(nvidia-|cuda-)' | cut -d= -f1)
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"   # expect "...+cpu False"
+pip cache purge                                                                # frees the cached CUDA wheels
+```
 
 ## Using the environment
 ```python
