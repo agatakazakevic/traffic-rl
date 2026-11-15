@@ -12,6 +12,7 @@ pip install -r requirements.txt
 export LIBSUMO_AS_TRACI=1        # ~10x faster simulation (Windows: set LIBSUMO_AS_TRACI=1)
 python scripts/check_env.py      # sanity checks + results/check_env.png (~3 min)
 python scripts/smoke_train.py    # confirms PPO and RecurrentPPO train
+python scripts/watch.py          # watch an episode in the SUMO GUI (see --help for options)
 ```
 `SUMO_HOME` is set automatically from the pip-installed `eclipse-sumo`.
 
@@ -22,6 +23,16 @@ pip uninstall -y torch triton $(pip list --format=freeze | grep -iE '^(nvidia-|c
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"   # expect "...+cpu False"
 pip cache purge                                                                # frees the cached CUDA wheels
+```
+
+## Watching an episode (SUMO GUI)
+`scripts/watch.py` plays one episode in SUMO's viewer, so you can see the cars, the signals and the disruption. It works on any OS with a display; on WSL2 it needs WSLg. Details of all options and requirements are in the file itself.
+
+```bash
+python scripts/watch.py                                     # traffic surge, fixed-time control
+python scripts/watch.py --disruption lane_closure --vc 0.8  # lane closure in heavy traffic
+python scripts/watch.py --policy random                     # random phases (an untrained agent)
+python scripts/watch.py --model runs/ppo.zip                # a trained PPO / RecurrentPPO model
 ```
 
 ## Using the environment
