@@ -38,6 +38,9 @@ if "SUMO_HOME" not in os.environ:  # pip-installed eclipse-sumo
         raise ImportError("Install SUMO (pip install eclipse-sumo) or set SUMO_HOME") from e
 
 from sumo_rl import SumoEnvironment  # noqa: E402  (needs SUMO_HOME first)
+from sumo_rl.environment.observations import DefaultObservationFunction  # noqa: E402
+
+from .observations import make_detector_observation  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NET_FILE = os.path.join(ROOT, "nets", "single-4way", "intersection.net.xml")
@@ -58,6 +61,9 @@ class AdaptiveTrafficEnv(gym.Wrapper):
             (the fixed-time baseline).
         seed: seeds the scenario sampler (not SUMO itself; each scenario
             carries its own SUMO seed so episodes are reproducible).
+        sensing_range: None = full-lane observation (sumo-rl default);
+            a number R = only vehicles within R m of the stop line are
+            visible (stop-line detectors), see envs/observations.py.
     """
 
     def __init__(
@@ -71,8 +77,10 @@ class AdaptiveTrafficEnv(gym.Wrapper):
         use_gui: bool = False,
         seed: Optional[int] = None,
         vc_range: tuple[float, float] = (0.3, 0.9),
+        sensing_range: Optional[float] = None,
     ):
         self.split = split
+        self.sensing_range = sensing_range
         self.fixed_scenario = scenario
         self.horizon = horizon
         self.vc_range = vc_range
@@ -98,6 +106,11 @@ class AdaptiveTrafficEnv(gym.Wrapper):
             sumo_warnings=False,
             time_to_teleport=300,  # safety valve against gridlock; teleports are logged
             add_per_agent_info=False,
+            additional_sumo_cmd="--no-step-log",  # hide the "Step #..." progress lines
+            observation_class=(
+                DefaultObservationFunction if sensing_range is None
+                else make_detector_observation(sensing_range)
+            ),
         )
         super().__init__(env)
 

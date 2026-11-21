@@ -58,8 +58,19 @@ With libsumo, only **one simulation per process** is allowed. For parallel train
 - 4 approaches, each 250 m long with 3 lanes: lane 0 is right + straight, lane 1 is straight, lane 2 is left.
 - 4 signal phases: N-S through, N-S protected left, E-W through, E-W protected left. Each has a 3 s yellow. The default fixed-time plan uses a 92 s cycle.
 - Agent: picks the next green phase every 5 s, with a minimum green of 5 s and a maximum of 60 s.
-- Observation (29 dims, from sumo-rl): one-hot of the current phase, a min-green flag, and density and queue for each lane.
+- Observation (29 dims): one-hot of the current phase, a min-green flag, and occupancy and queue for each of the 12 incoming lanes. Two sensing modes with the same layout (`envs/observations.py`):
+  - `make_env(sensing_range=None)` (default) gives **full-lane** sensing: the whole lane (~240 m) is visible. This is sumo-rl's default.
+  - `make_env(sensing_range=50)` gives **stop-line detectors**: only vehicles within 50 m of the stop line are visible, as with real loop detectors. Long queues look the same as short ones once they pass the detector, so the controller has to infer them over time.
 - Reward: `diff-waiting-time` by default. Change it with `make_env(reward_fn=...)`.
+
+## Pilot: does memory help? (`scripts/pilot_memory.py`)
+This trains PPO (no memory) and RecurrentPPO (LSTM memory) for one sensing mode. It then evaluates both, plus fixed-time, on surge, flip and the unseen lane closure (v/c 0.7, 3 seeds each). Run one sensing mode per terminal:
+```bash
+python scripts/pilot_memory.py --sensing full --steps 150000   # ~1 h on a laptop core
+python scripts/pilot_memory.py --sensing 50   --steps 150000
+python scripts/pilot_memory.py --plot                           # -> runs/pilot/pilot.png
+```
+It's a single-seed pilot to check the direction, not the final experiment.
 
 ## Traffic assumptions (`envs/scenarios.py`)
 - **Arrivals:** vehicles arrive at random. Each flow has a fixed per-second departure probability, which is roughly Poisson.
